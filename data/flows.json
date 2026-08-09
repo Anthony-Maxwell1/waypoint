@@ -1,0 +1,397 @@
+{
+  "stream": [
+    {
+      "type": "query",
+      "assign": "localProviders",
+      "allOf": [
+        "HasLocalCopy",
+        "StreamLocalCopy",
+        "DownloadLocalCopy"
+      ],
+      "anyOf": [],
+      "noneOf": []
+    },
+    {
+      "type": "if",
+      "condition": {
+        "type": "call",
+        "provider": {
+          "from": "localProviders",
+          "index": 0
+        },
+        "api": "HasLocalCopy",
+        "input": {
+          "title": {
+            "$var": "title"
+          }
+        }
+      },
+      "then": [
+        {
+          "type": "call",
+          "provider": {
+            "from": "localProviders",
+            "index": 0
+          },
+          "api": "StreamLocalCopy",
+          "input": {
+            "title": {
+              "$var": "title"
+            }
+          },
+          "assign": "streamResult"
+        },
+        {
+          "type": "return",
+          "value": {
+            "$var": "streamResult"
+          }
+        }
+      ],
+      "else": [
+        {
+          "type": "query",
+          "assign": "youtubeProviders",
+          "allOf": [
+            "YouTubeResolve"
+          ],
+          "anyOf": [],
+          "noneOf": []
+        },
+        {
+          "type": "call",
+          "provider": {
+            "from": "youtubeProviders",
+            "index": 0
+          },
+          "api": "YouTubeResolve",
+          "input": {
+            "title": {
+              "$var": "title"
+            },
+            "filters": {
+              "$var": "filters"
+            }
+          },
+          "assign": "resolved"
+        },
+        {
+          "type": "query",
+          "assign": "sourceProviders",
+          "allOf": [
+            "SourceFetch"
+          ],
+          "anyOf": [],
+          "noneOf": []
+        },
+        {
+          "type": "call",
+          "provider": {
+            "from": "sourceProviders",
+            "index": 0
+          },
+          "api": "SourceFetch",
+          "input": {
+            "sourceId": "youtube",
+            "sourceOptions": {
+              "url": {
+                "$var": "resolved.url"
+              },
+              "videoId": {
+                "$var": "resolved.videoId"
+              }
+            }
+          },
+          "assign": "streamResult"
+        },
+        {
+          "type": "background",
+          "steps": [
+            {
+              "type": "call",
+              "provider": {
+                "from": "localProviders",
+                "index": 0
+              },
+              "api": "DownloadLocalCopy",
+              "input": {
+                "title": {
+                  "$var": "title"
+                },
+                "sourceUrl": {
+                  "$var": "resolved.url"
+                }
+              },
+              "assign": "downloadResult"
+            }
+          ]
+        },
+        {
+          "type": "return",
+          "value": {
+            "$var": "streamResult"
+          }
+        }
+      ]
+    }
+  ],
+  "download": [
+    {
+      "type": "query",
+      "assign": "localProviders",
+      "allOf": [
+        "HasLocalCopy",
+        "StreamLocalCopy",
+        "DownloadLocalCopy"
+      ],
+      "anyOf": [],
+      "noneOf": []
+    },
+    {
+      "type": "if",
+      "condition": {
+        "type": "call",
+        "provider": {
+          "from": "localProviders",
+          "index": 0
+        },
+        "api": "HasLocalCopy",
+        "input": {
+          "title": {
+            "$var": "title"
+          }
+        }
+      },
+      "then": [
+        {
+          "type": "call",
+          "provider": {
+            "from": "localProviders",
+            "index": 0
+          },
+          "api": "StreamLocalCopy",
+          "input": {
+            "title": {
+              "$var": "title"
+            }
+          },
+          "assign": "streamResult"
+        },
+        {
+          "type": "return",
+          "value": {
+            "$var": "streamResult"
+          }
+        }
+      ],
+      "else": [
+        {
+          "type": "query",
+          "assign": "youtubeProviders",
+          "allOf": [
+            "YouTubeResolve"
+          ],
+          "anyOf": [],
+          "noneOf": []
+        },
+        {
+          "type": "call",
+          "provider": {
+            "from": "youtubeProviders",
+            "index": 0
+          },
+          "api": "YouTubeResolve",
+          "input": {
+            "title": {
+              "$var": "title"
+            },
+            "filters": {
+              "$var": "filters"
+            }
+          },
+          "assign": "resolved"
+        },
+        {
+          "type": "background",
+          "steps": [
+            {
+              "type": "call",
+              "provider": {
+                "from": "localProviders",
+                "index": 0
+              },
+              "api": "DownloadLocalCopy",
+              "input": {
+                "title": {
+                  "$var": "title"
+                },
+                "sourceUrl": {
+                  "$var": "resolved.url"
+                }
+              },
+              "assign": "downloadResult"
+            }
+          ]
+        },
+        {
+          "type": "query",
+          "assign": "sourceProviders",
+          "allOf": [
+            "SourceFetch"
+          ],
+          "anyOf": [],
+          "noneOf": []
+        },
+        {
+          "type": "call",
+          "provider": {
+            "from": "sourceProviders",
+            "index": 0
+          },
+          "api": "SourceFetch",
+          "input": {
+            "sourceId": "youtube",
+            "sourceOptions": {
+              "url": {
+                "$var": "resolved.url"
+              },
+              "videoId": {
+                "$var": "resolved.videoId"
+              }
+            }
+          },
+          "assign": "streamResult"
+        },
+        {
+          "type": "return",
+          "value": {
+            "$var": "streamResult"
+          }
+        }
+      ]
+    }
+  ],
+  "reserve": [
+    {
+      "type": "query",
+      "assign": "localProviders",
+      "allOf": [
+        "HasLocalCopy",
+        "DownloadLocalCopy"
+      ],
+      "anyOf": [],
+      "noneOf": []
+    },
+    {
+      "type": "if",
+      "condition": {
+        "type": "call",
+        "provider": {
+          "from": "localProviders",
+          "index": 0
+        },
+        "api": "HasLocalCopy",
+        "input": {
+          "title": {
+            "$var": "title"
+          }
+        }
+      },
+      "then": [
+        {
+          "type": "set",
+          "assign": "reserveResult",
+          "value": {
+            "reserved": true,
+            "cached": true,
+            "title": {
+              "$var": "title"
+            }
+          }
+        },
+        {
+          "type": "return",
+          "value": {
+            "$var": "reserveResult"
+          }
+        }
+      ],
+      "else": [
+        {
+          "type": "query",
+          "assign": "youtubeProviders",
+          "allOf": [
+            "YouTubeResolve"
+          ],
+          "anyOf": [],
+          "noneOf": []
+        },
+        {
+          "type": "call",
+          "provider": {
+            "from": "youtubeProviders",
+            "index": 0
+          },
+          "api": "YouTubeResolve",
+          "input": {
+            "title": {
+              "$var": "title"
+            },
+            "filters": {
+              "$var": "filters"
+            }
+          },
+          "assign": "resolved"
+        },
+        {
+          "type": "call",
+          "provider": {
+            "from": "localProviders",
+            "index": 0
+          },
+          "api": "DownloadLocalCopy",
+          "input": {
+            "title": {
+              "$var": "title"
+            },
+            "sourceUrl": {
+              "$var": "resolved.url"
+            }
+          },
+          "assign": "downloadResult"
+        },
+        {
+          "type": "set",
+          "assign": "reserveResult",
+          "value": {
+            "reserved": true,
+            "cached": false,
+            "title": {
+              "$var": "title"
+            }
+          }
+        },
+        {
+          "type": "return",
+          "value": {
+            "$var": "reserveResult"
+          }
+        }
+      ]
+    }
+  ],
+  "search": {
+    "baseCapabilities": [
+      "Search"
+    ],
+    "filterCapabilities": [
+      "SearchWithFilters"
+    ],
+    "movieCapabilities": [
+      "SearchMovies"
+    ],
+    "showCapabilities": [
+      "SearchShows"
+    ]
+  }
+}

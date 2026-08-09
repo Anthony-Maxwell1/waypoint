@@ -1,0 +1,86 @@
+[
+  {
+    "id": "builtin-core",
+    "name": "Core",
+    "description": "The core of waypoint.",
+    "dependencies": {
+      "onLoad": [],
+      "available": []
+    },
+    "apis": {
+      "onLoad": [],
+      "present": ["providesSource", "providesCondition"],
+      "provides": [
+        "QueryPlugins",
+        "PluginById",
+        "RESTServe",
+        "StaticServe",
+        "FileSystem",
+        "EventProvider",
+        "FileSystemEventProvider"
+      ]
+    }
+  },
+  {
+    "id": "builtin-sources",
+    "name": "Sources",
+    "description": "A builtin plugin that provides basic sources such as url and filesystem.",
+    "dependencies": {
+      "onLoad": ["builtin-core"],
+      "available": []
+    },
+    "apis": {
+      "onLoad": ["QueryPlugins", "FileSystem", "FileSystemEventProvider"],
+      "present": [],
+      "provides": ["providesSource", "providesCondition"]
+    }
+  },
+  {
+    "id": "builtin-search",
+    "name": "Search",
+    "description": "Search providers for movies and shows.",
+    "dependencies": {
+      "onLoad": ["builtin-core"],
+      "available": []
+    },
+    "apis": {
+      "onLoad": ["QueryPlugins"],
+      "present": [],
+      "provides": ["Search", "SearchWithFilters", "SearchMovies", "SearchShows"]
+    }
+  },
+  {
+    "id": "builtin-library",
+    "name": "Library",
+    "description": "Local cache and download management for already-resolved media.",
+    "dependencies": {
+      "onLoad": ["builtin-core"],
+      "available": []
+    },
+    "apis": {
+      "onLoad": ["QueryPlugins"],
+      "present": [],
+      "provides": [
+        "HasLocalCopy",
+        "StreamLocalCopy",
+        "DownloadLocalCopy",
+        "EventProvider",
+        "FileSystemEventProvider"
+      ]
+    }
+  },
+  {
+    "id": "builtin-youtube",
+    "name": "YouTube",
+    "description": "Resolves YouTube-style media URLs for the basic stream flow.",
+    "dependencies": {
+      "onLoad": ["builtin-core"],
+      "available": []
+    },
+    "apis": {
+      "onLoad": ["QueryPlugins"],
+      "present": [],
+      "provides": ["YouTubeResolve"]
+    }
+  }
+]
