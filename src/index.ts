@@ -18,114 +18,20 @@ const PLUGINS_MANIFEST = path.join(PLUGINS_DIR, "manifest.json");
 const DATA_DIR = path.resolve(process.cwd(), "data");
 const FLOWS_FILE = path.join(DATA_DIR, "flows.json");
 
-const manifestSchema = z.array(
-  z.object({
-    id: z.string(),
-    name: z.string(),
-    description: z.string(),
-    dependencies: z.object({
-      onLoad: z.array(z.string()),
-      available: z.array(z.string()),
-    }),
-    apis: z.object({
-      onLoad: z.array(z.string()),
-      present: z.array(z.string()),
-      provides: z.array(z.string()),
-    }),
-  }),
-);
-
-export type PluginManifest = z.infer<typeof manifestSchema>;
-export type PluginManifestEntry = PluginManifest[number];
-
-export interface PluginEvent {
-  providerId: string;
-  type: string;
-  payload: any;
-}
-
-export interface PluginManifestView {
-  all(): readonly PluginManifestEntry[];
-  get(id: string): PluginManifestEntry | undefined;
-}
-
-export interface PluginEventBus {
-  emit(type: string, payload: any): Promise<void>;
-  on(
-    providerPluginId: string,
-    handler: (event: PluginEvent) => Promise<void> | void,
-  ): () => void;
-}
-
-export interface PluginApiHandlerContext {
-  callerId: string;
-  pluginId: string;
-  logger: PluginInitContext["logger"];
-  manifest: PluginManifestView;
-  events: PluginEventBus;
-}
-
-type PluginApiHandler = (
-  input: any,
-  context: PluginApiHandlerContext,
-) => Promise<any> | any;
-
-export interface PluginApiSchema<TInput, TOutput> {
-  name: string;
-  inputSchema: z.ZodType<TInput>;
-  outputSchema: z.ZodType<TOutput>;
-}
-
-export function definePluginApiSchema<TInput, TOutput>(
-  name: string,
-  inputSchema: z.ZodType<TInput>,
-  outputSchema: z.ZodType<TOutput>,
-): PluginApiSchema<TInput, TOutput> {
-  return {
-    name,
-    inputSchema,
-    outputSchema,
-  };
-}
-
-export interface PluginApiRegistry {
-  provide(name: string, handler: PluginApiHandler): void;
-  call<TResponse = any>(
-    providerPluginId: string,
-    name: string,
-    input: any,
-  ): Promise<TResponse>;
-  provideSchema<TInput, TOutput>(
-    schema: PluginApiSchema<TInput, TOutput>,
-    handler: (
-      input: TInput,
-      context: PluginApiHandlerContext,
-    ) => Promise<TOutput> | TOutput,
-  ): void;
-  callSchema<TInput, TOutput>(
-    providerPluginId: string,
-    schema: PluginApiSchema<TInput, TOutput>,
-    input: TInput,
-  ): Promise<TOutput>;
-  has(name: string): boolean;
-  list(): string[];
-}
-
-export interface PluginModule {
-  init(ctx: PluginInitContext): Promise<void> | void;
-}
-
-export interface PluginInitContext {
-  pluginId: string;
-  logger: {
-    log: (message: string) => void;
-    error: (message: string) => void;
-    warn: (message: string) => void;
-  };
-  manifest: PluginManifestView;
-  api: PluginApiRegistry;
-  events: PluginEventBus;
-}
+import {
+  type PluginModule,
+  type PluginApiHandler,
+  type PluginApiHandlerContext,
+  type PluginManifest,
+  type PluginManifestEntry,
+  type PluginEvent,
+  type PluginEventBus,
+  type PluginManifestView,
+  type PluginApiSchema,
+  type PluginInitContext,
+  type PluginApiRegistry,
+  manifestSchema,
+} from "./types.js";
 
 interface LoadedPlugin {
   manifest: PluginManifestEntry;
@@ -661,7 +567,9 @@ async function loadPlugin(plugin: PluginManifestEntry): Promise<boolean> {
     return true;
   } catch (e) {
     cleanupPluginState(plugin.id);
-    logger.error(`Failed to load plugin ${plugin.id}: ${(e as Error).stack ?? String(e)}`);
+    logger.error(
+      `Failed to load plugin ${plugin.id}: ${(e as Error).stack ?? String(e)}`,
+    );
     return false;
   }
 }
@@ -704,7 +612,9 @@ async function loadAllPlugins(manifest: PluginManifest): Promise<void> {
     }
 
     for (const plugin of readyThisPass) {
+      logger.log(`Loading plugin '${plugin.id}'...`);
       const ok = await loadPlugin(plugin);
+      logger.log(`Plugin '${plugin.id}' loaded: ${ok ? "success" : "failure"}`);
       if (ok) {
         loadedIds.add(plugin.id);
         plugin.apis.provides.forEach((a) => providedApis.add(a));

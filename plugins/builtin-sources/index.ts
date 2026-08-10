@@ -3,7 +3,7 @@ import { z } from "zod";
 import {
   definePluginApiSchema,
   type PluginInitContext,
-} from "../../src/index.js";
+} from "../../src/types.js";
 
 const SourceDescriptorSchema = z.object({
   from: z.string(),

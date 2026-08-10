@@ -2,7 +2,7 @@ import { z } from "zod";
 import {
   definePluginApiSchema,
   type PluginInitContext,
-} from "../../src/index.js";
+} from "../../src/types.js";
 
 const SearchFiltersSchema = z.object({
   type: z.enum(["movie", "show"]).optional(),

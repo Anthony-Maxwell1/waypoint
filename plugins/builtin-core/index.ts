@@ -2,7 +2,7 @@ import { z } from "zod";
 import {
   definePluginApiSchema,
   type PluginInitContext,
-} from "../../src/index.js";
+} from "../../src/types.js";
 
 const manifestEntrySchema = z.object({
   id: z.string(),
@@ -49,6 +49,8 @@ export const schemas = {
 
 function init(initContext: PluginInitContext): Promise<void> | void {
   const { api, logger, manifest, events, pluginId } = initContext;
+
+  logger.log(`Initializing builtin-core plugin...`);
 
   api.provideSchema(QueryPluginsApi, async (filters) => {
     const provides = Array.isArray(filters?.provides)
