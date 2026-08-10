@@ -156,6 +156,8 @@ function createLogger(pluginId: string): PluginInitContext["logger"] {
   };
 }
 
+const logger = createLogger("waypoint-runtime");
+
 function createEventBus(pluginId: string): PluginEventBus {
   return {
     async emit(type, payload) {
@@ -647,7 +649,7 @@ async function loadPlugin(plugin: PluginManifestEntry): Promise<boolean> {
     const mod = (imported.default ?? imported) as Partial<PluginModule>;
 
     if (typeof mod.init !== "function") {
-      console.error(`Plugin '${plugin.id}' does not export a valid init()`);
+      logger.error(`Plugin '${plugin.id}' does not export a valid init()`);
       return false;
     }
 
@@ -659,12 +661,13 @@ async function loadPlugin(plugin: PluginManifestEntry): Promise<boolean> {
     return true;
   } catch (e) {
     cleanupPluginState(plugin.id);
-    console.error(`Failed to load plugin ${plugin.id}:`, e);
+    logger.error(`Failed to load plugin ${plugin.id}: ${(e as Error).stack ?? String(e)}`);
     return false;
   }
 }
 
 async function loadAllPlugins(manifest: PluginManifest): Promise<void> {
+  logger.log(`Loading ${manifest.length} plugins...`);
   const loadedIds = new Set<string>();
   const providedApis = new Set<string>();
   let remaining = [...manifest];
@@ -685,7 +688,7 @@ async function loadAllPlugins(manifest: PluginManifest): Promise<void> {
     }
 
     if (readyThisPass.length === 0) {
-      console.error("Plugin loading stalled — unresolved dependencies:");
+      logger.error("Plugin loading stalled — unresolved dependencies:");
       for (const plugin of stillWaiting) {
         const missingDeps = plugin.dependencies.onLoad.filter(
           (d) => !loadedIds.has(d),
@@ -693,7 +696,7 @@ async function loadAllPlugins(manifest: PluginManifest): Promise<void> {
         const missingApis = plugin.apis.onLoad.filter(
           (a) => !providedApis.has(a),
         );
-        console.error(
+        logger.error(
           `  '${plugin.id}' waiting on: deps=[${missingDeps}] apis=[${missingApis}]`,
         );
       }
@@ -718,8 +721,8 @@ const manifestData = readFileSync(PLUGINS_MANIFEST, "utf-8");
 const manifest: PluginManifest = JSON.parse(manifestData);
 
 if (!checkManifest(manifest)) {
-  console.error("Invalid plugin manifest");
-  console.warn(`The plugin manifest must satisfy the following conditions:
+  logger.error("Invalid plugin manifest");
+  logger.warn(`The plugin manifest must satisfy the following conditions:
 
     - All dependencies of each plugin must be present in the manifest.
     - All APIs required by each plugin must be provided by some plugin in the manifest.
@@ -1166,6 +1169,6 @@ const server = createServer(async (request, response) => {
 });
 
 server.listen(3000, () => {
-  console.log(`Loaded ${loadedPlugins.length} plugin(s).`);
-  console.log("Waypoint UI available at http://localhost:3000");
+  logger.log(`Loaded ${loadedPlugins.length} plugin(s).`);
+  logger.log("Waypoint UI available at http://localhost:3000");
 });
