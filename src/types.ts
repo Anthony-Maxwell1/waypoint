@@ -1,5 +1,59 @@
 import { z } from "zod";
 
+export const SearchFiltersSchema = z.object({
+  type: z.enum(["movie", "show"]).optional(),
+  // genre: z.string().optional(),
+  year: z.number().int().optional(),
+  // not: z.array(z.string()).optional(),
+});
+
+export const SearchResultSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  providerId: z.string(),
+  providerData: z.any().optional(),
+  summary: z.string(),
+  kind: z.string(),
+  url: z.string().optional(),
+  score: z.number().optional(),
+});
+
+export const SearchApi = definePluginApiSchema(
+  "Search",
+  z.object({
+    query: z.string(),
+    filters: SearchFiltersSchema.optional(),
+  }),
+  z.array(SearchResultSchema),
+);
+
+export const SearchWithFiltersApi = definePluginApiSchema(
+  "SearchWithFilters",
+  z.object({
+    query: z.string(),
+    filters: SearchFiltersSchema,
+  }),
+  z.array(SearchResultSchema),
+);
+
+export const SearchMoviesApi = definePluginApiSchema(
+  "SearchMovies",
+  z.object({
+    query: z.string(),
+    filters: SearchFiltersSchema.optional(),
+  }),
+  z.array(SearchResultSchema),
+);
+
+export const SearchShowsApi = definePluginApiSchema(
+  "SearchShows",
+  z.object({
+    query: z.string(),
+    filters: SearchFiltersSchema.optional(),
+  }),
+  z.array(SearchResultSchema),
+);
+
 export type PluginApiHandler = (
   input: any,
   context: PluginApiHandlerContext,

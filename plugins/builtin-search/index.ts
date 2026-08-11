@@ -1,61 +1,16 @@
 import { z } from "zod";
 import {
   definePluginApiSchema,
+  SearchResultSchema,
+  SearchFiltersSchema,
+  SearchApi,
+  SearchWithFiltersApi,
+  SearchMoviesApi,
+  SearchShowsApi,
   type PluginInitContext,
 } from "../../src/types.js";
-
-export const SearchFiltersSchema = z.object({
-  type: z.enum(["movie", "show"]).optional(),
-  genre: z.string().optional(),
-  year: z.number().int().optional(),
-  not: z.array(z.string()).optional(),
-});
-
-export const SearchResultSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  providerId: z.string(),
-  summary: z.string(),
-  kind: z.string(),
-  url: z.string().optional(),
-  score: z.number().optional(),
-});
-
-export const SearchApi = definePluginApiSchema(
-  "Search",
-  z.object({
-    query: z.string(),
-    filters: SearchFiltersSchema.optional(),
-  }),
-  z.array(SearchResultSchema),
-);
-
-export const SearchWithFiltersApi = definePluginApiSchema(
-  "SearchWithFilters",
-  z.object({
-    query: z.string(),
-    filters: SearchFiltersSchema,
-  }),
-  z.array(SearchResultSchema),
-);
-
-export const SearchMoviesApi = definePluginApiSchema(
-  "SearchMovies",
-  z.object({
-    query: z.string(),
-    filters: SearchFiltersSchema.optional(),
-  }),
-  z.array(SearchResultSchema),
-);
-
-export const SearchShowsApi = definePluginApiSchema(
-  "SearchShows",
-  z.object({
-    query: z.string(),
-    filters: SearchFiltersSchema.optional(),
-  }),
-  z.array(SearchResultSchema),
-);
+import dotenv from "dotenv";
+dotenv.config({ path: ".env.local" });
 
 export const schemas = {
   Search: SearchApi,
@@ -64,109 +19,106 @@ export const schemas = {
   SearchShows: SearchShowsApi,
 };
 
-const CATALOG = [
-  {
-    id: "neon-city",
-    title: "Neon City",
-    kind: "movie",
-    genre: "sci-fi",
-    year: 2024,
-    summary: "A courier outruns a city-sized surveillance grid.",
-  },
-  {
-    id: "quiet-river",
-    title: "Quiet River",
-    kind: "show",
-    genre: "drama",
-    year: 2023,
-    summary: "A small town mystery unfolds along a fading river.",
-  },
-  {
-    id: "orbital-run",
-    title: "Orbital Run",
-    kind: "movie",
-    genre: "action",
-    year: 2022,
-    summary: "A fugitive must traverse a broken orbital ring.",
-  },
-  {
-    id: "signal-house",
-    title: "Signal House",
-    kind: "show",
-    genre: "thriller",
-    year: 2025,
-    summary: "Residents of an apartment block are linked by a hidden signal.",
-  },
-];
-
-function matchesFilters(
-  item: (typeof CATALOG)[number],
-  filters?: z.infer<typeof SearchFiltersSchema>,
-): boolean {
-  if (!filters) {
-    return true;
-  }
-
-  if (filters.type && item.kind !== filters.type) {
-    return false;
-  }
-  if (filters.genre && item.genre !== filters.genre) {
-    return false;
-  }
-  if (filters.year && item.year !== filters.year) {
-    return false;
-  }
-  if (filters.not?.length) {
-    const haystack =
-      `${item.title} ${item.summary} ${item.genre}`.toLowerCase();
-    if (filters.not.some((term) => haystack.includes(term.toLowerCase()))) {
-      return false;
-    }
-  }
-  return true;
-}
-
-function scoreMatch(query: string, item: (typeof CATALOG)[number]): number {
-  const haystack = `${item.title} ${item.summary} ${item.genre}`.toLowerCase();
-  const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
-  let score = 0;
-  for (const term of terms) {
-    if (haystack.includes(term)) {
-      score += 1;
-    }
-  }
-  return score;
-}
-
-function searchCatalog(
+async function searchCatalog(
   query: string,
   filters?: z.infer<typeof SearchFiltersSchema>,
-  kind?: string,
+  type?: "movie" | "show" | "audio",
 ) {
-  return CATALOG.filter((item) => {
-    if (kind && item.kind !== kind) {
-      return false;
+  if (filters?.type) type = filters.type;
+  const results: z.infer<typeof SearchResultSchema>[] = [];
+  if (type) {
+    switch (type) {
+      case "movie":
+        const res = await fetch(
+          `https://api.themoviedb.org/3/search/movie?include_adult=false&language=en-US&page=1&query=${encodeURIComponent(query)}${filters?.year ? `&year=${filters.year}` : ""}`,
+          {
+            headers: {
+              Authorization: `Bearer ${process.env.TMDB_TOKEN}`,
+            },
+          },
+        );
+        const data: { results: any[] } = (await res.json()) as {
+          results: any[];
+        };
+        if (data && data.results) {
+          for (const item of data.results) {
+            results.push({
+              id: item.id.toString(),
+              title: item.title,
+              providerId: "builtin-search",
+              providerData: {
+                source: "tmdb",
+                originalData: item,
+              },
+              summary: item.overview,
+              kind: "movie",
+              url: `https://www.themoviedb.org/movie/${item.id}`,
+            });
+          }
+        }
+        break;
+      case "show":
+        const res2 = await fetch(
+          `https://api.themoviedb.org/3/search/tv?include_adult=false&language=en-US&page=1&query=${encodeURIComponent(query)}${filters?.year ? `&first_air_date_year=${filters.year}` : ""}`,
+          {
+            headers: {
+              Authorization: `Bearer ${process.env.TMDB_TOKEN}`,
+            },
+          },
+        );
+        const data2: { results: any[] } = (await res2.json()) as {
+          results: any[];
+        };
+        if (data2 && data2.results) {
+          for (const item of data2.results) {
+            results.push({
+              id: item.id.toString(),
+              title: item.name,
+              providerId: "builtin-search",
+              providerData: {
+                source: "tmdb",
+                originalData: item,
+              },
+              summary: item.overview,
+              kind: "show",
+              url: `https://www.themoviedb.org/tv/${item.id}`,
+            });
+          }
+        }
+        break;
+      case "audio":
+        break;
     }
-    if (
-      !item.title.toLowerCase().includes(query.toLowerCase()) &&
-      scoreMatch(query, item) === 0
-    ) {
-      return false;
+  } else {
+    const res = await fetch(
+      `https://api.themoviedb.org/3/search/multi?include_adult=false&language=en-US&page=1&query=${encodeURIComponent(query)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.TMDB_TOKEN}`,
+        },
+      },
+    );
+    const data: { results: any[] } = (await res.json()) as {
+      results: any[];
+    };
+    if (data && data.results) {
+      for (const item of data.results) {
+        results.push({
+          id: item.id.toString(),
+          title: item.name || item.title,
+          providerId: "builtin-search",
+          providerData: {
+            source: "tmdb",
+            originalData: item,
+          },
+          summary: item.overview,
+          kind: item.media_type,
+          url: `https://www.themoviedb.org/${item.media_type}/${item.id}`,
+        });
+      }
     }
-    return matchesFilters(item, filters);
-  })
-    .map((item) =>
-      SearchResultSchema.parse({
-        id: item.id,
-        title: item.title,
-        providerId: "builtin-search",
-        summary: item.summary,
-        kind: item.kind,
-        url: `https://example.invalid/${item.id}`,
-        score: scoreMatch(query, item),
-      }),
-    )
-    .sort((left, right) => (right.score ?? 0) - (left.score ?? 0));
+  }
+  return results;
 }
 
 export default {
